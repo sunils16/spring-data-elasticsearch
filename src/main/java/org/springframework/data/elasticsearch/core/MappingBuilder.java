@@ -15,6 +15,9 @@
  */
 package org.springframework.data.elasticsearch.core;
 
+
+
+
 import static org.elasticsearch.common.xcontent.XContentFactory.*;
 import static org.springframework.util.StringUtils.*;
 
@@ -28,15 +31,9 @@ import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.springframework.core.ResolvableType;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.data.annotation.Transient;
-import org.springframework.data.elasticsearch.annotations.CompletionField;
-import org.springframework.data.elasticsearch.annotations.DateFormat;
-import org.springframework.data.elasticsearch.annotations.Field;
-import org.springframework.data.elasticsearch.annotations.FieldType;
-import org.springframework.data.elasticsearch.annotations.GeoPointField;
-import org.springframework.data.elasticsearch.annotations.InnerField;
-import org.springframework.data.elasticsearch.annotations.Mapping;
-import org.springframework.data.elasticsearch.annotations.MultiField;
+import org.springframework.data.elasticsearch.annotations.*;
 import org.springframework.data.elasticsearch.core.completion.Completion;
+import org.springframework.data.elasticsearch.core.geo.Circle;
 import org.springframework.data.elasticsearch.core.geo.GeoPoint;
 import org.springframework.data.mapping.model.SimpleTypeHolder;
 import org.springframework.data.util.ClassTypeInformation;
@@ -73,6 +70,7 @@ class MappingBuilder {
 
 	public static final String TYPE_VALUE_KEYWORD = "keyword";
 	public static final String TYPE_VALUE_GEO_POINT = "geo_point";
+    public static final String TYPE_VALUE_GEO_SHAPE = "geo_shape";
 	public static final String TYPE_VALUE_COMPLETION = "completion";
 	public static final String TYPE_VALUE_GEO_HASH_PREFIX = "geohash_prefix";
 	public static final String TYPE_VALUE_GEO_HASH_PRECISION = "geohash_precision";
@@ -131,10 +129,11 @@ class MappingBuilder {
 			}
 
 			boolean isGeoPointField = isGeoPointField(field);
+            boolean isGeoShapeField = isGeoShapeField(field);
 			boolean isCompletionField = isCompletionField(field);
 
 			Field singleField = field.getAnnotation(Field.class);
-			if (!isGeoPointField && !isCompletionField && isEntity(field) && isAnnotated(field)) {
+			if (!isGeoPointField && !isGeoShapeField && !isCompletionField && isEntity(field) && isAnnotated(field)) {
 				if (singleField == null) {
 					continue;
 				}
@@ -150,6 +149,9 @@ class MappingBuilder {
 			if (isGeoPointField) {
 				applyGeoPointFieldMapping(xContentBuilder, field);
 			}
+            if (isGeoShapeField) {
+                applyGeoShapeFieldMapping(xContentBuilder, field);
+            }
 
 			if (isCompletionField) {
 				CompletionField completionField = field.getAnnotation(CompletionField.class);
@@ -189,7 +191,8 @@ class MappingBuilder {
 		return field.getAnnotation(Field.class) != null ||
 				field.getAnnotation(MultiField.class) != null ||
 				field.getAnnotation(GeoPointField.class) != null ||
-				field.getAnnotation(CompletionField.class) != null;
+                field.getAnnotation(GeoShapeField.class) != null ||
+                field.getAnnotation(CompletionField.class) != null;
 	}
 
 	private static void applyGeoPointFieldMapping(XContentBuilder xContentBuilder, java.lang.reflect.Field field) throws IOException {
@@ -198,7 +201,13 @@ class MappingBuilder {
 		xContentBuilder.endObject();
 	}
 
-	private static void applyCompletionFieldMapping(XContentBuilder xContentBuilder, java.lang.reflect.Field field, CompletionField annotation) throws IOException {
+    private static void applyGeoShapeFieldMapping(XContentBuilder xContentBuilder, java.lang.reflect.Field field) throws IOException {
+        xContentBuilder.startObject(field.getName());
+        xContentBuilder.field(FIELD_TYPE, TYPE_VALUE_GEO_SHAPE)
+                .endObject();
+    }
+
+    private static void applyCompletionFieldMapping(XContentBuilder xContentBuilder, java.lang.reflect.Field field, CompletionField annotation) throws IOException {
 		xContentBuilder.startObject(field.getName());
 		xContentBuilder.field(FIELD_TYPE, TYPE_VALUE_COMPLETION);
 		if (annotation != null) {
@@ -375,6 +384,10 @@ class MappingBuilder {
 
 	private static boolean isGeoPointField(java.lang.reflect.Field field) {
 		return field.getType() == GeoPoint.class || field.getAnnotation(GeoPointField.class) != null;
+	}
+
+    private static boolean isGeoShapeField(java.lang.reflect.Field field) {
+        return field.getType() == Circle.class || field.getAnnotation(GeoShapeField.class) != null;
 	}
 
 	private static boolean isCompletionField(java.lang.reflect.Field field) {

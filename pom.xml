@@ -19,6 +19,7 @@
     <properties>
         <commonscollections>3.2.1</commonscollections>
         <commonslang>2.6</commonslang>
+ 	<geojson>1.6</geojson>
         <elasticsearch>5.5.0</elasticsearch>
         <log4j>2.8.2</log4j>
         <springdata.commons>2.0.10.BUILD-SNAPSHOT</springdata.commons>
@@ -57,6 +58,13 @@
             <artifactId>commons-lang</artifactId>
             <version>${commonslang}</version>
             <scope>test</scope>
+        </dependency>
+
+ 	<!-- GeoJSON -->
+        <dependency>
+            <groupId>de.grundid.opendatalab</groupId>
+            <artifactId>geojson-jackson</artifactId>
+            <version>${geojson}</version>
         </dependency>
 
         <!-- JODA Time -->
